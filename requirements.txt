@@ -1,0 +1,15 @@
+sentence-transformers
+faiss-cpu
+rank-bm25
+transformers
+torch
+fastapi
+uvicorn
+streamlit
+numpy
+pandas
+tqdm
+ragas
+datasets
+python-dotenv
+pypdf
