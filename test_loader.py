@@ -1,6 +1,7 @@
 from ingestion.document_loader import load_papers
 
-docs = load_papers("data/raw_papers")
+loader = DocumentLoader("data/raw_papers")
+docs = loader.load_documents()
 
 print("Number of pages loaded:", len(docs))
 print(docs[0])

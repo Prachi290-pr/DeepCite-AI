@@ -1,27 +1,33 @@
-def chunk_text_pages(documents, chunk_size=500, overlap=50):
-    """
-    documents: list of {text, source, page}
-    returns: list of chunks with metadata
-    """
-    all_chunks = []
+class Chunker:
 
-    for doc in documents:
-        text = doc["text"]
-        start = 0
-        chunk_id = 0
+    def __init__(self, chunk_size=500, overlap=50):
+        self.chunk_size = chunk_size
+        self.overlap = overlap
 
-        while start < len(text):
-            end = start + chunk_size
-            chunk_text = text[start:end]
+    def chunk_documents(self, documents):
 
-            all_chunks.append({
-                "chunk_id": f"{doc['source']}_p{doc['page']}_c{chunk_id}",
-                "text": chunk_text,
-                "source": doc["source"],
-                "page": doc["page"]
-            })
+        all_chunks = []
 
-            start += chunk_size - overlap
-            chunk_id += 1
+        for doc in documents:
 
-    return all_chunks
+            text = doc["text"]
+            start = 0
+            chunk_id = 0
+
+            while start < len(text):
+
+                end = start + self.chunk_size
+
+                chunk_text = text[start:end]
+
+                all_chunks.append({
+                    "chunk_id": f"{doc['source']}_p{doc['page']}_c{chunk_id}",
+                    "text": chunk_text,
+                    "source": doc["source"],
+                    "page": doc["page"]
+                })
+
+                start += self.chunk_size - self.overlap
+                chunk_id += 1
+
+        return all_chunks

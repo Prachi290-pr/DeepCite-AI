@@ -2,24 +2,29 @@ from pathlib import Path
 from pypdf import PdfReader
 
 
-def load_papers(folder_path):
+class DocumentLoader:
 
-    documents = []
+    def __init__(self, folder_path):
+        self.folder_path = folder_path
 
-    for pdf_file in Path(folder_path).glob("*.pdf"):
+    def load_documents(self):
 
-        reader = PdfReader(pdf_file)
+        documents = []
 
-        for page_num, page in enumerate(reader.pages):
+        for pdf_file in Path(self.folder_path).glob("*.pdf"):
 
-            text = page.extract_text()
+            reader = PdfReader(pdf_file)
 
-            if text:
+            for page_num, page in enumerate(reader.pages):
 
-                documents.append({
-                    "text": text,
-                    "source": pdf_file.name,
-                    "page": page_num + 1
-                })
+                text = page.extract_text()
 
-    return documents
+                if text:
+
+                    documents.append({
+                        "text": text,
+                        "source": pdf_file.name,
+                        "page": page_num + 1
+                    })
+
+        return documents
