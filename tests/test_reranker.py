@@ -22,7 +22,7 @@ retriever = HybridRetriever(vector_index, bm25)
 
 candidates = retriever.retrieve(
     "How does self attention work in transformers?",
-    top_k=10
+    top_k=20
 )
 
 reranker = CrossEncoderReranker()
