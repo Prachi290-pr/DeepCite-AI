@@ -1,0 +1,1 @@
+{"timestamp": "2026-03-13 11:30:30.534876", "query": "What architecture does the transformer use?", "answer": "The Transformer uses an encoder-decoder architecture with stacked self-attention layers.", "sources": ["attention_is_all_you_need.pdf"], "context_precision": 0.5051560997962952, "answer_relevance": 0.5659018754959106, "faithfulness": 0.9814603328704834}
