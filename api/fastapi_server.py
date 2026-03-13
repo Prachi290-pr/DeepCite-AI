@@ -4,8 +4,18 @@ from pydantic import BaseModel
 from pipeline.rag_pipeline import RAGPipeline
 from ingestion.document_loader import DocumentLoader
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # Create FastAPI app
 app = FastAPI(title="DeepCite AI")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Initialize pipeline
 pipeline = RAGPipeline()
