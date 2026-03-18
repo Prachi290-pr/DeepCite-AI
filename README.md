@@ -39,34 +39,45 @@ User Query
 ```
 DeepCite-AI
 │
+├── api/
+│ └── fastapi_server.py # FastAPI backend
+│
+├── frontend/ # React UI
+│ ├── src/
+│ │ ├── App.jsx
+│ │ └── api/
+│ │ └── ragApi.js
+│
 ├── data/
-│   └── papers/                # Research paper PDFs
+│ └── raw_papers/ # Research PDFs
 │
 ├── ingestion/
-│   └── document_loader.py
+│ └── document_loader.py
 │
 ├── chunking/
-│   └── text_chunker.py
+│ └── text_chunker.py
 │
 ├── indexing/
-│   ├── vector_index.py
-│   └── bm25_index.py
+│ ├── vector_index.py
+│ └── bm25_index.py
 │
 ├── retrieval/
-│   └── hybrid_retriever.py
+│ └── hybrid_retriever.py
 │
 ├── reranking/
-│   └── cross_encoder_reranker.py
+│ └── cross_encoder_reranker.py
 │
 ├── generation/
-│   └── answer_generator.py
+│ └── answer_generator.py
+│
+├── pipeline/
+│ └── rag_pipeline.py
+│
+├── evaluation/
+│ └── metrics.py
 │
 ├── tests/
-│   ├── test_retrieval.py
-│   ├── test_reranker.py
-│   └── test_generation.py
 │
-├── requirements.txt
 └── README.md
 ```
 
@@ -106,26 +117,91 @@ Set the HuggingFace API token:
 export HF_TOKEN=your_token_here
 ```
 
+
 ---
 
-## Running the Pipeline
+## Running the Backend
 
-Run the generation test:
 
-```
-python -m tests.test_generation
-```
+uvicorn api.fastapi_server:app --reload --port 8000
+
+
+API will be available at:
+
+
+http://localhost:8000
+
+http://localhost:8000/docs
+
+
+---
+
+## Running the Frontend
+
+
+cd frontend
+npm install
+npm run dev
+
+
+Frontend runs at:
+
+
+http://localhost:5173
+
+
+---
+
+## API Endpoint
+
+### POST `/ask`
+
+Request:
+
+
+{
+"query": "Explain attention mechanism"
+}
+
+
+Response:
+
+
+{
+"answer": "...",
+"sources": [
+{"source": "paper.pdf", "page": 3}
+],
+"metrics": {
+"faithfulness": 0.92,
+"answer_relevance": 0.89
+}
+}
+
 
 ---
 
 ## Technologies Used
 
-* Python
-* Sentence Transformers
-* BM25 Retrieval
-* Cross-Encoder Reranking
-* HuggingFace Inference API
-* Retrieval-Augmented Generation (RAG)
+### Backend
+- Python
+- FastAPI
+- Sentence Transformers
+- FAISS
+- BM25
+- HuggingFace Inference API
+
+### Frontend
+- React (Vite)
+- JavaScript
+- Modern Chat UI Design
+
+### AI/ML Concepts
+- Retrieval-Augmented Generation (RAG)
+- Semantic Search
+- Cross-Encoder Reranking
+- LLM Prompt Engineering
+
 
 ---
 
