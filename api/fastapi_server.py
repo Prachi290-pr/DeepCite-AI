@@ -1,10 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File 
+import os
+import shutil
 from pydantic import BaseModel
 
 from pipeline.rag_pipeline import RAGPipeline
 from ingestion.document_loader import DocumentLoader
 
 from fastapi.middleware.cors import CORSMiddleware
+
+
+UPLOAD_DIR = "data/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 
 # Create FastAPI app
 app = FastAPI(title="DeepCite AI")
@@ -51,4 +58,20 @@ def ask_question(request: QueryRequest):
         "answer": result["answer"],
         "sources": result["sources"],
         "metrics": result["metrics"]
+    }
+
+
+# Upload endpoint
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+
+    file_path = os.path.join(UPLOAD_DIR, file.filename)
+
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return {
+        "message": "File uploaded successfully",
+        "filename": file.filename
     }
