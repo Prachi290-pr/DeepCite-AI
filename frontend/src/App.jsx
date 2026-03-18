@@ -1,472 +1,511 @@
 import { useState, useEffect, useRef } from "react";
-import ReactMarkdown from "react-markdown";
 import { askQuestion } from "./api/ragApi";
+import ReactMarkdown from 'react-markdown';
 
-function App() {
+// Inject global styles
+const styleSheet = document.createElement("style");
+styleSheet.textContent = `
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-void: #000000;
+    --bg-base: #050805;
+    --bg-surface: #0a0f0a;
+    --bg-raised: #0f160f;
+    --bg-hover: #141f14;
+    --border-dim: #1a2e1a;
+    --border-mid: #1f3a1f;
+    --border-bright: #2d5a2d;
+    --green-dim: #1a4d1a;
+    --green-mid: #22c55e;
+    --green-bright: #4ade80;
+    --green-glow: #86efac;
+    --green-muted: #166534;
+    --text-primary: #e8f5e8;
+    --text-secondary: #6b9e6b;
+    --text-dim: #3d6b3d;
+    --text-bright: #a3e8a3;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-display: 'Syne', sans-serif;
+  }
+
+  html, body, #root { height: 100%; background: var(--bg-void); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--green-dim); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--green-muted); }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 4px rgba(34, 197, 94, 0.3); }
+    50% { box-shadow: 0 0 12px rgba(34, 197, 94, 0.7), 0 0 24px rgba(34, 197, 94, 0.2); }
+  }
+
+  @keyframes bounce-dot {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  @keyframes scan-line {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
+
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.8; }
+    94% { opacity: 1; }
+    96% { opacity: 0.9; }
+    97% { opacity: 1; }
+  }
+
+  @keyframes slide-in-left {
+    from { transform: translateX(-8px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes slide-in-right {
+    from { transform: translateX(8px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes fade-up {
+    from { transform: translateY(6px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes terminal-cursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .file-item:hover { color: var(--green-bright) !important; background: var(--bg-hover) !important; }
+  .file-item:hover .file-dot { background: var(--green-bright) !important; }
+
+  .source-chip:hover { background: var(--bg-hover) !important; border-color: var(--green-mid) !important; color: var(--green-bright) !important; }
+  .source-chip:hover .source-num { background: var(--green-mid) !important; color: #000 !important; }
+
+  .send-btn:hover:not(:disabled) { background: var(--green-bright) !important; box-shadow: 0 0 20px rgba(74, 222, 128, 0.4) !important; }
+
+  .query-btn:hover { background: var(--bg-hover) !important; border-color: var(--green-mid) !important; color: var(--green-bright) !important; }
+
+  .upload-btn:hover { background: var(--green-muted) !important; border-color: var(--green-bright) !important; box-shadow: 0 0 12px rgba(34, 197, 94, 0.3) !important; }
+
+  .chat-input:focus { border-color: var(--green-mid) !important; box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.15), inset 0 0 20px rgba(34, 197, 94, 0.03) !important; outline: none; }
+
+  .ai-msg { animation: slide-in-left 0.25s ease-out; }
+  .user-msg { animation: slide-in-right 0.25s ease-out; }
+  .fade-up { animation: fade-up 0.3s ease-out; }
+
+  .app-container { animation: flicker 8s infinite; }
+
+  .status-dot { animation: pulse-glow 2s infinite; }
+`;
+document.head.appendChild(styleSheet);
+
+export default function App() {
   const [messages, setMessages] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const chatEndRef = useRef(null);
-  const textareaRef = useRef(null);
+  const [selectedSource, setSelectedSource] = useState(null);
+  const [time, setTime] = useState(new Date().toLocaleTimeString("en-US", { hour12: false }));
 
-  const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const [library] = useState([
+    "attention_is_all_u_need.pdf",
+    "bert.pdf",
+    "vit.pdf",
+    "llama.pdf",
+  ]);
+
+  const chatEndRef = useRef(null);
 
   useEffect(() => {
-    scrollToBottom();
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const handleInputChange = (e) => {
-    setQuery(e.target.value);
-
-    e.target.style.height = "auto";
-    e.target.style.height = e.target.scrollHeight + "px";
-  };
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date().toLocaleTimeString("en-US", { hour12: false })), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!query.trim()) return;
-
+    if (!query.trim() || loading) return;
     const userMessage = { role: "user", text: query };
-
     setMessages((prev) => [...prev, userMessage]);
     setQuery("");
     setLoading(true);
-
-    if (textareaRef.current) textareaRef.current.style.height = "auto";
-
     try {
       const result = await askQuestion(query);
-
-      const aiMessage = {
+      setMessages((prev) => [...prev, {
         role: "assistant",
         text: result.answer,
         sources: result.sources || [],
-        metrics: result.metrics || {}
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: "Error connecting to DeepCite engine. Ensure FastAPI backend is running."
-        }
-      ]);
+        metrics: result.metrics || {},
+      }]);
+    } catch {
+      setMessages((prev) => [...prev, { role: "assistant", text: "ERR_CONNECTION_REFUSED — Is FastAPI running?" }]);
     }
-
     setLoading(false);
   };
 
   return (
-    <div style={styles.appContainer}>
-      {/* Sidebar */}
+    <div className="app-container" style={{
+      display: "flex",
+      height: "100vh",
+      background: "var(--bg-void)",
+      fontFamily: "var(--font-mono)",
+      color: "var(--text-primary)",
+      overflow: "hidden",
+      position: "relative",
+    }}>
 
-      <aside style={styles.sidebar}>
-        <div style={styles.sidebarContent}>
-          <div style={styles.logoArea}>
-            <div style={styles.logoIcon}>DC</div>
-            <div>
-              <h2 style={styles.sidebarTitle}>DeepCite AI</h2>
-              <p style={styles.sidebarSubtitle}>Research Assistant</p>
+      {/* Scanline overlay */}
+      <div style={{
+        position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999,
+        background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)",
+      }} />
+
+      {/* ── LEFT SIDEBAR ── */}
+      <aside style={{
+        width: 260, background: "var(--bg-base)",
+        borderRight: "1px solid var(--border-dim)",
+        display: "flex", flexDirection: "column",
+        padding: "20px 0",
+        position: "relative",
+        flexShrink: 0,
+      }}>
+        {/* Logo area */}
+        <div style={{ padding: "0 20px 20px", borderBottom: "1px solid var(--border-dim)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <div style={{
+              width: 28, height: 28, border: "1px solid var(--green-mid)",
+              borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
+              background: "rgba(34,197,94,0.08)",
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green-mid)" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
             </div>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "1rem", letterSpacing: "-0.02em", color: "var(--green-bright)" }}>
+              RAGBASE
+            </span>
+          </div>
+          <div style={{ fontSize: "0.62rem", color: "var(--text-dim)", letterSpacing: "0.1em" }}>
+            RESEARCH INTELLIGENCE SYSTEM
+          </div>
+        </div>
+
+        {/* Library */}
+        <div style={{ padding: "16px 20px", flex: 1, overflowY: "auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <span style={{ fontSize: "0.62rem", color: "var(--text-dim)", letterSpacing: "0.12em", fontWeight: 600 }}>
+              INDEXED CORPUS
+            </span>
+            <button className="upload-btn" style={{
+              width: 22, height: 22, border: "1px solid var(--border-mid)",
+              background: "transparent", color: "var(--green-mid)", cursor: "pointer",
+              borderRadius: 4, fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 0.2s",
+            }}>+</button>
           </div>
 
-          <div style={styles.statusBadge}>
-            <span style={styles.statusDot}></span>
-            Engine Running
+          {library.map((file, i) => (
+            <div key={i} className="file-item" style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
+              borderRadius: 6, cursor: "default", transition: "all 0.15s",
+              color: "var(--text-secondary)", fontSize: "0.76rem", marginBottom: 2,
+            }}>
+              <div className="file-dot" style={{
+                width: 5, height: 5, borderRadius: "50%", background: "var(--green-muted)",
+                flexShrink: 0, transition: "background 0.15s",
+              }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{file}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer stats */}
+        <div style={{ padding: "14px 20px 0", borderTop: "1px solid var(--border-dim)" }}>
+          <div style={{ height: 2, background: "var(--bg-raised)", borderRadius: 1, marginBottom: 8, overflow: "hidden" }}>
+            <div style={{ width: "40%", height: "100%", background: "linear-gradient(90deg, var(--green-muted), var(--green-mid))", borderRadius: 1 }} />
           </div>
-
-          <div style={styles.sidebarMenu}>
-            <p style={styles.menuLabel}>SYSTEM</p>
-
-            <div style={styles.componentPill}>Hybrid Search</div>
-            <div style={styles.componentPill}>BM25 + FAISS</div>
-            <div style={styles.componentPill}>Llama-3-8B</div>
-            <div style={styles.componentPill}>Cross Encoder Rerank</div>
-          </div>
-
-          <div style={styles.sidebarFooter}>
-            Built for Academic Retrieval
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.62rem", color: "var(--text-dim)" }}>
+            <span>4 / 10 docs</span>
+            <span>HYBRID SEARCH</span>
           </div>
         </div>
       </aside>
 
-      {/* Main */}
-
-      <main style={styles.mainArea}>
-        <div style={styles.chatHeader}>
-          <h3 style={styles.headerTitle}>Research Chat</h3>
+      {/* ── MAIN CHAT ── */}
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", background: "var(--bg-void)", overflow: "hidden", minWidth: 0 }}>
+        {/* Header */}
+        <div style={{
+          padding: "12px 24px", borderBottom: "1px solid var(--border-dim)",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          background: "var(--bg-base)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+              Research Assistant
+            </span>
+            <span style={{
+              fontSize: "0.6rem", letterSpacing: "0.1em", padding: "2px 8px",
+              border: "1px solid var(--green-dim)", color: "var(--green-mid)",
+              borderRadius: 3, fontWeight: 600,
+            }}>BETA</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.7rem", color: "var(--text-secondary)" }}>
+              <div className="status-dot" style={{
+                width: 6, height: 6, borderRadius: "50%", background: "var(--green-mid)",
+                boxShadow: "0 0 6px rgba(34,197,94,0.5)",
+              }} />
+              Llama-3 · ONLINE
+            </div>
+            <span style={{ fontSize: "0.7rem", color: "var(--text-dim)", fontVariantNumeric: "tabular-nums" }}>{time}</span>
+          </div>
         </div>
 
-        <div style={styles.chatBox}>
+        {/* Messages */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "24px", display: "flex", flexDirection: "column", gap: 16 }}>
           {messages.length === 0 && (
-            <div style={styles.emptyState}>
-              <h3>DeepCite Knowledge Base</h3>
-              <p>Ask questions about your indexed research papers.</p>
+            <div className="fade-up" style={{ margin: "auto", textAlign: "center", maxWidth: 360, padding: "40px 0" }}>
+              <div style={{
+                width: 56, height: 56, border: "1px solid var(--border-bright)", borderRadius: 12,
+                display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px",
+                background: "rgba(34,197,94,0.05)",
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green-mid)" strokeWidth="1.5">
+                  <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
+                </svg>
+              </div>
+              <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: 8, letterSpacing: "-0.02em" }}>
+                Ready to Research
+              </h3>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: 24, lineHeight: 1.6 }}>
+                Query your indexed corpus. Hybrid BM25 + vector retrieval active.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {["What is the main contribution?", "Summarize the methodology", "Compare attention mechanisms", "What datasets were used?"].map((q, i) => (
+                  <button key={i} className="query-btn" onClick={() => setQuery(q)} style={{
+                    padding: "9px 14px", background: "var(--bg-surface)", border: "1px solid var(--border-dim)",
+                    borderRadius: 8, color: "var(--text-secondary)", fontSize: "0.78rem", cursor: "pointer",
+                    textAlign: "left", transition: "all 0.2s", fontFamily: "var(--font-mono)",
+                  }}>
+                    <span style={{ color: "var(--green-mid)", marginRight: 8 }}>&gt;</span>{q}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              style={{
-                ...styles.messageRow,
-                ...(msg.role === "user" ? styles.userRow : styles.aiRow)
-              }}
-            >
-              {msg.role === "assistant" && <div style={styles.aiAvatar}>AI</div>}
-
-              <div
-                style={
-                  msg.role === "user" ? styles.userBubble : styles.aiBubble
-                }
-              >
-                <div style={styles.messageText}>
+          {messages.map((msg, idx) => (
+            msg.role === "user" ? (
+              <div key={idx} className="user-msg" style={{ alignSelf: "flex-end", maxWidth: "75%" }}>
+                <div style={{
+                  background: "var(--bg-raised)", border: "1px solid var(--border-bright)",
+                  borderRadius: "12px 12px 2px 12px", padding: "12px 16px",
+                  fontSize: "0.875rem", lineHeight: 1.6, color: "var(--text-bright)",
+                  boxShadow: "0 0 20px rgba(34,197,94,0.05)",
+                }}>
                   <ReactMarkdown>{msg.text}</ReactMarkdown>
                 </div>
-
-                {/* Sources */}
-
-                {msg.sources && msg.sources.length > 0 && (
-                  <div style={styles.sourcesContainer}>
-                    <div style={styles.sourcesHeader}>Sources</div>
-
-                    {msg.sources.map((s, i) => (
-                      <div
-                        key={i}
-                        style={styles.sourceTag}
-                        onClick={() =>
-                          alert(`Open ${s.source} page ${s.page}`)
-                        }
-                      >
-                        <span style={styles.sourceBadge}>{i + 1}</span>
-
-                        <span style={styles.sourceName}>{s.source}</span>
-
-                        <span style={styles.pageTag}>Page {s.page}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Metrics */}
-
-                {msg.metrics && Object.keys(msg.metrics).length > 0 && (
-                  <div style={styles.metricsBar}>
-                    {Object.entries(msg.metrics).map(([key, val]) => (
-                      <div key={key} style={styles.metricItem}>
-                        <span style={styles.metricLabel}>
-                          {key.replace("_", " ")}
-                        </span>
-
-                        <div style={styles.progressBar}>
-                          <div
-                            style={{
-                              ...styles.progressFill,
-                              width: `${val * 100}%`
-                            }}
-                          ></div>
-                        </div>
-
-                        <span style={styles.metricValue}>
-                          {(val * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-            </div>
+            ) : (
+              <div key={idx} className="ai-msg" style={{ alignSelf: "flex-start", maxWidth: "88%", display: "flex", gap: 10 }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: 6, border: "1px solid var(--border-bright)",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2,
+                  background: "rgba(34,197,94,0.08)",
+                  fontSize: "0.6rem", color: "var(--green-mid)", fontWeight: 700, letterSpacing: "0.05em",
+                }}>AI</div>
+                <div>
+                  <div style={{
+                    background: "var(--bg-surface)", border: "1px solid var(--border-dim)",
+                    borderRadius: "2px 12px 12px 12px", padding: "14px 18px",
+                    fontSize: "0.875rem", lineHeight: 1.7, color: "var(--text-primary)",
+                  }}>
+                    {msg.text}
+                  </div>
+                  {msg.sources?.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                      {msg.sources.map((s, i) => (
+                        <button key={i} className="source-chip" onClick={() => setSelectedSource(s)} style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "5px 10px 5px 6px", border: "1px solid var(--border-mid)",
+                          background: selectedSource === s ? "rgba(34,197,94,0.1)" : "var(--bg-surface)",
+                          borderColor: selectedSource === s ? "var(--green-mid)" : "var(--border-mid)",
+                          borderRadius: 20, cursor: "pointer", transition: "all 0.2s",
+                          fontFamily: "var(--font-mono)",
+                        }}>
+                          <span className="source-num" style={{
+                            width: 16, height: 16, borderRadius: "50%",
+                            background: selectedSource === s ? "var(--green-mid)" : "var(--border-bright)",
+                            color: selectedSource === s ? "#000" : "var(--text-secondary)",
+                            fontSize: "0.6rem", fontWeight: 700,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            transition: "all 0.2s",
+                          }}>{i + 1}</span>
+                          <span style={{ fontSize: "0.72rem", color: selectedSource === s ? "var(--green-bright)" : "var(--text-secondary)", maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.source}</span>
+                          <span style={{ fontSize: "0.62rem", color: "var(--text-dim)" }}>p.{s.page}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
           ))}
 
           {loading && (
-            <div style={{ ...styles.messageRow, ...styles.aiRow }}>
-              <div style={styles.aiAvatar}>AI</div>
-
-              <div style={styles.aiBubble}>
-                <div style={styles.typingIndicator}>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
+            <div className="ai-msg" style={{ alignSelf: "flex-start", display: "flex", gap: 10 }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: 6, border: "1px solid var(--border-bright)",
+                background: "rgba(34,197,94,0.08)",
+                fontSize: "0.6rem", color: "var(--green-mid)", fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2,
+              }}>AI</div>
+              <div style={{
+                background: "var(--bg-surface)", border: "1px solid var(--border-dim)",
+                borderRadius: "2px 12px 12px 12px", padding: "14px 18px",
+                display: "flex", alignItems: "center", gap: 4,
+              }}>
+                {[0, 0.2, 0.4].map((d, i) => (
+                  <span key={i} style={{
+                    width: 6, height: 6, borderRadius: "50%", background: "var(--green-mid)",
+                    display: "inline-block",
+                    animation: `bounce-dot 1.2s ${d}s infinite ease-in-out`,
+                  }} />
+                ))}
               </div>
             </div>
           )}
-
           <div ref={chatEndRef} />
         </div>
 
         {/* Input */}
-
-        <div style={styles.inputWrapper}>
-          <form onSubmit={handleSubmit} style={styles.inputArea}>
-            <textarea
-              ref={textareaRef}
-              value={query}
-              placeholder="Ask about your research papers..."
-              onChange={handleInputChange}
-              style={styles.input}
-              rows={1}
-              disabled={loading}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e);
-                }
-              }}
-            />
-
-            <button
-              type="submit"
-              style={loading ? styles.buttonDisabled : styles.button}
-              disabled={loading}
-            >
-              {loading ? "..." : "Send"}
-            </button>
-          </form>
-
-          <p style={styles.footerNote}>
-            Answers are grounded in indexed research papers.
-          </p>
+        <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border-dim)", background: "var(--bg-base)", display: "flex", gap: 10, alignItems: "center" }}>
+          <span style={{ color: "var(--green-mid)", fontSize: "0.9rem", flexShrink: 0, fontWeight: 600 }}>&gt;</span>
+          <input
+            className="chat-input"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSubmit(e)}
+            placeholder="Query your research corpus..."
+            disabled={loading}
+            style={{
+              flex: 1, padding: "11px 14px", background: "var(--bg-surface)",
+              border: "1px solid var(--border-mid)", borderRadius: 8,
+              color: "var(--text-primary)", fontSize: "0.875rem", fontFamily: "var(--font-mono)",
+              transition: "all 0.2s",
+              caretColor: "var(--green-bright)",
+            }}
+          />
+          <button
+            className="send-btn"
+            onClick={handleSubmit}
+            disabled={loading || !query.trim()}
+            style={{
+              width: 40, height: 40, borderRadius: 8, border: "1px solid var(--border-bright)",
+              background: loading || !query.trim() ? "var(--bg-surface)" : "rgba(34,197,94,0.15)",
+              color: loading || !query.trim() ? "var(--text-dim)" : "var(--green-mid)",
+              cursor: loading || !query.trim() ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 0.2s", flexShrink: 0,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
         </div>
       </main>
+
+      {/* ── RIGHT SIDEBAR ── */}
+      <aside style={{
+        width: 280, background: "var(--bg-base)", borderLeft: "1px solid var(--border-dim)",
+        padding: 20, display: "flex", flexDirection: "column", flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <span style={{ fontSize: "0.62rem", letterSpacing: "0.12em", color: "var(--text-dim)", fontWeight: 600 }}>
+            SOURCE INSPECTOR
+          </span>
+          {selectedSource && (
+            <button onClick={() => setSelectedSource(null)} style={{
+              background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: "0.7rem",
+            }}>✕ clear</button>
+          )}
+        </div>
+
+        {selectedSource ? (
+          <div className="fade-up" style={{
+            border: "1px solid var(--border-mid)", borderRadius: 10,
+            background: "var(--bg-surface)", overflow: "hidden",
+          }}>
+            {/* Header */}
+            <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border-dim)", background: "var(--bg-raised)" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 4 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green-mid)" strokeWidth="2" style={{ marginTop: 2, flexShrink: 0 }}>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span style={{ fontSize: "0.78rem", color: "var(--text-primary)", wordBreak: "break-all", lineHeight: 1.4, fontWeight: 500 }}>
+                  {selectedSource.source}
+                </span>
+              </div>
+              <div style={{ fontSize: "0.65rem", color: "var(--green-mid)", marginLeft: 20 }}>
+                PAGE {selectedSource.page}
+              </div>
+            </div>
+
+            {/* Excerpt */}
+            <div style={{ padding: 14 }}>
+              <div style={{ fontSize: "0.62rem", color: "var(--text-dim)", letterSpacing: "0.1em", marginBottom: 8 }}>EXCERPT</div>
+              <div style={{
+                background: "var(--bg-void)", border: "1px solid var(--border-dim)", borderRadius: 6, padding: "10px 12px",
+                borderLeft: "2px solid var(--green-muted)", marginBottom: 14,
+              }}>
+                <p style={{ fontSize: "0.78rem", lineHeight: 1.65, color: "var(--text-secondary)", fontStyle: "italic", margin: 0 }}>
+                  "{selectedSource.text}"
+                </p>
+              </div>
+
+              {/* Metadata */}
+              {[
+                ["RELEVANCE", "HIGH"],
+                ["METHOD", "HYBRID"],
+                ["RETRIEVER", "BM25 + FAISS"],
+              ].map(([label, val]) => (
+                <div key={label} style={{
+                  display: "flex", justifyContent: "space-between", padding: "7px 0",
+                  borderBottom: "1px solid var(--border-dim)", fontSize: "0.72rem",
+                }}>
+                  <span style={{ color: "var(--text-dim)", letterSpacing: "0.06em" }}>{label}</span>
+                  <span style={{ color: "var(--green-bright)", fontWeight: 600, letterSpacing: "0.04em" }}>{val}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+            <div style={{
+              width: 44, height: 44, border: "1px dashed var(--border-mid)",
+              borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
+              opacity: 0.5,
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-mid)" strokeWidth="1.5">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+              </svg>
+            </div>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-dim)", textAlign: "center", lineHeight: 1.6 }}>
+              Click a source chip<br/>to inspect context
+            </p>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }
-
-const styles = {
-  appContainer: {
-    display: "flex",
-    height: "100vh",
-    fontFamily: "Inter, sans-serif",
-    background: "#f8fafc"
-  },
-
-  sidebar: {
-    width: "250px",
-    background: "#0f172a",
-    color: "white"
-  },
-
-  sidebarContent: {
-    padding: "28px",
-    height: "100%",
-    display: "flex",
-    flexDirection: "column"
-  },
-
-  logoArea: {
-    display: "flex",
-    gap: "10px",
-    alignItems: "center",
-    marginBottom: "30px"
-  },
-
-  logoIcon: {
-    background: "#2563eb",
-    width: "34px",
-    height: "34px",
-    borderRadius: "8px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "bold"
-  },
-
-  sidebarTitle: { margin: 0 },
-
-  sidebarSubtitle: { margin: 0, fontSize: "0.7rem", opacity: 0.6 },
-
-  statusBadge: {
-    background: "#022c22",
-    padding: "8px",
-    borderRadius: "8px",
-    fontSize: "0.8rem",
-    marginBottom: "24px"
-  },
-
-  statusDot: {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%",
-    background: "#22c55e",
-    display: "inline-block",
-    marginRight: "6px"
-  },
-
-  sidebarMenu: { flex: 1 },
-
-  menuLabel: {
-    fontSize: "0.65rem",
-    textTransform: "uppercase",
-    opacity: 0.5
-  },
-
-  componentPill: {
-    background: "#1e293b",
-    padding: "8px",
-    borderRadius: "6px",
-    fontSize: "0.75rem",
-    marginTop: "6px"
-  },
-
-  sidebarFooter: { fontSize: "0.7rem", opacity: 0.5 },
-
-  mainArea: { flex: 1, display: "flex", flexDirection: "column" },
-
-  chatHeader: {
-    padding: "18px",
-    borderBottom: "1px solid #e2e8f0",
-    background: "white"
-  },
-
-  headerTitle: { margin: 0 },
-
-  chatBox: {
-    flex: 1,
-    overflowY: "auto",
-    padding: "30px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px"
-  },
-
-  messageRow: { display: "flex", gap: "10px", maxWidth: "80%" },
-
-  userRow: { alignSelf: "flex-end", flexDirection: "row-reverse" },
-
-  aiRow: { alignSelf: "flex-start" },
-
-  aiAvatar: {
-    background: "#2563eb",
-    color: "white",
-    width: "30px",
-    height: "30px",
-    borderRadius: "8px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "10px"
-  },
-
-  userBubble: {
-    background: "#2563eb",
-    color: "white",
-    padding: "14px",
-    borderRadius: "16px"
-  },
-
-  aiBubble: {
-    background: "white",
-    border: "1px solid #e2e8f0",
-    padding: "16px",
-    borderRadius: "16px"
-  },
-
-  messageText: { lineHeight: 1.6 },
-
-  sourcesContainer: { marginTop: "12px" },
-
-  sourcesHeader: {
-    fontSize: "0.7rem",
-    textTransform: "uppercase",
-    opacity: 0.6
-  },
-
-  sourceTag: {
-    display: "flex",
-    gap: "8px",
-    padding: "6px",
-    background: "#f1f5f9",
-    borderRadius: "6px",
-    marginTop: "4px",
-    cursor: "pointer"
-  },
-
-  sourceBadge: {
-    background: "#e2e8f0",
-    padding: "2px 6px",
-    borderRadius: "4px",
-    fontSize: "0.7rem"
-  },
-
-  pageTag: { color: "#2563eb", fontWeight: "bold" },
-
-  metricsBar: { marginTop: "10px" },
-
-  metricItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    fontSize: "0.7rem"
-  },
-
-  progressBar: {
-    flex: 1,
-    height: "4px",
-    background: "#e2e8f0",
-    borderRadius: "3px"
-  },
-
-  progressFill: { background: "#2563eb", height: "100%" },
-
-  metricValue: { fontWeight: "bold" },
-
-  inputWrapper: {
-    borderTop: "1px solid #e2e8f0",
-    padding: "18px",
-    background: "white"
-  },
-
-  inputArea: {
-    display: "flex",
-    gap: "10px",
-    maxWidth: "800px",
-    margin: "0 auto"
-  },
-
-  input: {
-    flex: 1,
-    border: "1px solid #cbd5e1",
-    borderRadius: "10px",
-    padding: "10px",
-    resize: "none",
-    fontSize: "0.95rem",
-    outline: "none"
-  },
-
-  button: {
-    background: "#2563eb",
-    color: "white",
-    border: "none",
-    borderRadius: "10px",
-    padding: "10px 18px",
-    cursor: "pointer"
-  },
-
-  buttonDisabled: {
-    background: "#94a3b8",
-    color: "white",
-    border: "none",
-    borderRadius: "10px",
-    padding: "10px 18px"
-  },
-
-  footerNote: {
-    textAlign: "center",
-    fontSize: "0.7rem",
-    marginTop: "8px",
-    color: "#94a3b8"
-  },
-
-  typingIndicator: {
-    display: "flex",
-    gap: "4px"
-  }
-};
-
-export default App;

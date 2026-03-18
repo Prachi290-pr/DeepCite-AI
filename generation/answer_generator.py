@@ -38,18 +38,22 @@ Page: {doc['page']}
         context = self.build_context(documents)
 
         prompt = f"""
-You are an AI research assistant.
+You are a research assistant AI.
 
-Answer ONLY using the provided sources.
-If the answer is not present in the sources, say you don't know.
+STRICT RULES:
+1. Answer ONLY using the provided context.
+2. If answer is partially available, try to infer carefully.
+3. If answer is NOT present, say:
+   "This information is not available in the provided documents."
+4. ALWAYS follow the user’s instruction (format, table, bullet points, etc.)
+5. Be clear, structured, and complete.
 
-Always cite the paper name and page number.
+FORMAT RULES:
+- If user asks for table → return table
+- If user asks for summary → return concise summary
+- If comparison → use structured format
 
-Sources:
-{context}
-
-Question:
-{query}
+Do NOT say "I don't know" unless absolutely necessary.
 """
 
         response = self.client.chat.completions.create(
