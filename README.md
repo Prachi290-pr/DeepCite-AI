@@ -47,7 +47,7 @@ Cross-Encoder Reranking (Top 5)
     ↓
 Context Construction (Reranked Order)
     ↓
-LLM Generation (Table-free, Cited)
+LLM Generation (Cited)
     ↓
 Quality Assessment + Response
 ```
@@ -258,61 +258,16 @@ Returns system status and available endpoints.
 
 ### GET `/status`
 Returns current system status including indexing state.
-
-**Response:**
-```json
-{
-  "system_ready": true,
-  "documents_indexed": 5,
-  "last_indexed": "2024-01-15T10:30:00Z"
-}
 ```
 
 ### POST `/upload`
 Upload PDF documents for indexing.
 
-**Request:**
-- Content-Type: `multipart/form-data`
-- Body: `file` (PDF file)
-
-**Response:**
-```json
-{
-  "message": "Document uploaded successfully. Indexing in progress...",
-  "filename": "research_paper.pdf",
-  "status": "indexing"
-}
 ```
 
 ### POST `/ask`
 Ask questions about uploaded documents.
 
-**Request:**
-```json
-{
-  "query": "What are the main findings of this research?"
-}
-```
-
-**Response:**
-```json
-{
-  "query": "What are the main findings of this research?",
-  "answer": "The research identifies three key findings... [Source 1, Page 5]",
-  "sources": [
-    {
-      "source": "research_paper.pdf",
-      "page": 5,
-      "text": "The experimental results show..."
-    }
-  ],
-  "metrics": {
-    "context_precision": 0.95,
-    "answer_relevance": 0.89,
-    "faithfulness": 0.92
-  }
-}
-```
 
 
 ## Technologies & Dependencies
@@ -339,24 +294,8 @@ Ask questions about uploaded documents.
 - **Fallback Models**: Automatic model switching on failures
 
 
-```
 
-
-##  Completed Features
-
-- **Cross-Encoder Reranking**: Implemented with top-5 chunk selection
-- **Hybrid Search**: Vector + BM25 with reciprocal rank fusion
-- **Enhanced Answer Generation**: Table removal, quality assessment, proper citations
-- **Production Backend**: FastAPI with async processing and error handling
-- **Modern Frontend**: React UI with file upload and chat interface
-- **Comprehensive Testing**: Full test coverage for all components
-- **RAG Evaluation**: Faithfulness, relevance, and precision metrics
-- **Security**: Environment-based configuration and API key management
-- **Documentation**: Detailed API docs and usage examples
-
-
-
-### Evaluation Metrics
+## Evaluation Metrics
 
 The system includes comprehensive RAG evaluation:
 
