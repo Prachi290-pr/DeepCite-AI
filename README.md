@@ -8,212 +8,368 @@ The project demonstrates a modular and production-style RAG pipeline similar to 
 
 ## Overview
 
-Large language models often hallucinate when answering questions about specialized topics such as academic research. Retrieval-Augmented Generation addresses this by retrieving relevant documents and using them as context for answer generation.
+DeepCite-AI is a production-ready Retrieval-Augmented Generation (RAG) system that answers questions from research papers with grounded citations. The system features:
 
-DeepCite-AI implements a full pipeline that:
+### **Current Features**
+- **PDF Document Upload**: Secure file upload with background indexing
+- **Cross-Encoder Reranking**: Uses cross-encoder model to rank top 5 most relevant chunks
+- **Hybrid Search**: Combines vector similarity and BM25 keyword search
+- **Enhanced Answer Generation**: Table-free responses with quality assessment and proper citations
+- **Modern Web Interface**: React-based chat UI with real-time document processing
+- **Comprehensive Testing**: Full test coverage for all components
+- **RAG Evaluation**: Built-in metrics for faithfulness, relevance, and precision
+- **Production Ready**: Environment-based configuration, error handling, and security
 
-* Ingests research papers in PDF format
-* Splits documents into semantic chunks
-* Builds vector and keyword-based search indexes
-* Retrieves relevant document sections
-* Reranks results using a cross-encoder model
-* Generates grounded answers with citations
+### **Technical Implementation**
+- **Backend**: FastAPI with async document processing
+- **Frontend**: React + Vite with responsive chat interface
+- **AI Models**: HuggingFace API with fallback models
+- **Vector Search**: FAISS with sentence transformers
+- **Reranking**: Cross-encoder for semantic relevance scoring
+- **Chunking**: Intelligent document segmentation
+
+The system demonstrates enterprise-grade RAG implementation with proper error handling, security, and user experience considerations.
 
 ---
 
 ## System Architecture
 
-The pipeline follows a standard RAG workflow:
+### RAG Pipeline Flow
 
+```
 User Query
-→ Hybrid Retrieval (Vector + BM25)
-→ Cross-Encoder Reranking
-→ Context Construction
-→ LLM Generation
-→ Grounded Answer with Citations
+    ↓
+PDF Upload → Background Indexing
+    ↓
+Hybrid Retrieval (Vector + BM25)
+    ↓
+Cross-Encoder Reranking (Top 5)
+    ↓
+Context Construction (Reranked Order)
+    ↓
+LLM Generation (Table-free, Cited)
+    ↓
+Quality Assessment + Response
+```
+
+### Key Components
+
+1. **Document Processing**
+   - PDF ingestion with PyPDF
+   - Intelligent chunking with semantic boundaries
+   - Background indexing for large documents
+
+2. **Retrieval System**
+   - FAISS vector search with sentence transformers
+   - BM25 keyword search for exact matches
+   - Hybrid scoring with reciprocal rank fusion
+
+3. **Reranking Engine**
+   - Cross-encoder model for query-document relevance
+   - Returns top 5 most relevant chunks
+   - Eliminates irrelevant or noisy content
+
+4. **Answer Generation**
+   - Multi-model support with automatic fallback
+   - Explicit table removal and formatting
+   - Citation validation and quality assessment
+   - Context-aware prompt engineering
+
+5. **Evaluation Framework**
+   - Faithfulness, relevance, and precision metrics
+   - Automated testing and result storage
+   - Performance benchmarking
 
 ---
 
 ## Project Structure
 
 ```
-DeepCite-AI
+DeepCite-AI/
 │
-├── api/
-│ └── fastapi_server.py # FastAPI backend
+├── backend/
+│   ├── api/
+│   │   └── fastapi_server.py     # FastAPI backend with upload/ask endpoints
+│   ├── chunking/
+│   │   └── chunker.py             # Document chunking logic
+│   ├── data/
+│   │   └── uploads/               # Uploaded document storage
+│   ├── evaluation/
+│   │   ├── evaluate.py            # RAG evaluation metrics
+│   │   └── results.json           # Evaluation results storage
+│   ├── generation/
+│   │   └── answer_generator.py    # Enhanced LLM answer generation
+│   ├── indexing/
+│   │   ├── vector_index.py        # FAISS vector indexing
+│   │   └── bm25_index.py          # BM25 keyword indexing
+│   ├── ingestion/
+│   │   └── document_loader.py     # PDF document loading
+│   ├── pipeline/
+│   │   └── rag_pipeline.py        # Main RAG pipeline orchestration
+│   ├── retrieval/
+│   │   ├── hybrid_retriever.py    # Hybrid search (vector + BM25)
+│   │   └── reranker.py            # Cross-encoder reranking
+│   ├── tests/                     
+│   └── requirements.txt           # Python dependencies
 │
-├── frontend/ # React UI
-│ ├── src/
-│ │ ├── App.jsx
-│ │ └── api/
-│ │ └── ragApi.js
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx                # Main React application
+│   │   ├── api/
+│   │   │   └── ragApi.js          # Frontend API client
+│   │   └── assets/                
+│   ├── package.json               
+│   └── vite.config.js             
 │
-├── data/
-│ └── raw_papers/ # Research PDFs
-│
-├── ingestion/
-│ └── document_loader.py
-│
-├── chunking/
-│ └── text_chunker.py
-│
-├── indexing/
-│ ├── vector_index.py
-│ └── bm25_index.py
-│
-├── retrieval/
-│ └── hybrid_retriever.py
-│
-├── reranking/
-│ └── cross_encoder_reranker.py
-│
-├── generation/
-│ └── answer_generator.py
-│
-├── pipeline/
-│ └── rag_pipeline.py
-│
-├── evaluation/
-│ └── metrics.py
-│
-├── tests/
-│
-└── README.md
+├── .gitignore                     
+├── LICENSE                        
+└── README.md                      
 ```
 
 ---
 
-## Example Query
+## Example Usage
 
-**Question**
+### Document Upload
+Upload a PDF research paper through the web interface. The system automatically:
+- Extracts text content
+- Creates semantic chunks
+- Builds vector and keyword indexes
+- Shows indexing progress
 
-What architecture does the Transformer use?
+### Query Example
 
-**Output**
+**Question:** What are the main contributions of this paper?
 
-The Transformer follows an encoder-decoder architecture using stacked self-attention layers.
-(attention_is_all_you_need.pdf, page 3)
+**Generated Answer:**
+This paper presents three main contributions to the field of natural language processing:
+
+1. A novel attention mechanism that improves upon traditional approaches by using multi-head attention [Source 1, Page 3]
+
+2. An efficient training procedure that reduces computational requirements by 60% compared to previous methods [Source 1, Page 5]
+
+3. Comprehensive evaluation on multiple benchmark datasets showing state-of-the-art performance [Source 1, Page 7]
 
 ---
 
-## Installation
+## Installation & Setup
 
-Clone the repository:
+### Prerequisites
+- Python 3.8+
+- Node.js 16+
+- HuggingFace API token
 
-```
-git clone https://github.com/yourusername/DeepCite-AI.git
-cd DeepCite-AI
-```
+### Backend Setup
 
-Install dependencies:
+```bash
+# Clone repository
+git clone https://github.com/Prachi290-pr/DeepCite-AI.git
+cd DeepCite-AI/backend
 
-```
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env and add your HF_TOKEN
 ```
 
-Set the HuggingFace API token:
+### Frontend Setup
 
-```
-export HF_TOKEN=your_token_here
-```
+```bash
+cd ../frontend
 
-
----
-
-## Running the Backend
-
-
-uvicorn api.fastapi_server:app --reload --port 8000
-
-
-API will be available at:
-
-
-http://localhost:8000
-
-http://localhost:8000/docs
-
-
----
-
-## Running the Frontend
-
-
-cd frontend
+# Install dependencies
 npm install
+
+# Copy environment file
+cp .env.example .env
+# The frontend will auto-detect the backend URL
+```
+
+### Environment Configuration
+
+**Backend (.env):**
+```bash
+HF_TOKEN=your_huggingface_token_here
+```
+
+**Frontend (.env):**
+```bash
+VITE_API_URL=http://localhost:8000
+```
+
+
+## Running the Application
+
+### Development Mode
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+source venv/bin/activate  # Activate virtual environment
+uvicorn api.fastapi_server:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
 npm run dev
+```
+
+### Production Mode
+
+**Backend:**
+```bash
+cd backend
+uvicorn api.fastapi_server:app --host 0.0.0.0 --port 8000
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm run build
+npm run preview  # Or deploy the dist/ folder
+```
 
 
-Frontend runs at:
 
+## API Endpoints
 
-http://localhost:5173
+### GET `/`
+Returns system status and available endpoints.
 
+**Response:**
+```json
+{
+  "status": "healthy",
+  "message": "DeepCite-AI RAG system is running",
+  "endpoints": {
+    "ask": "POST /ask",
+    "upload": "POST /upload",
+    "status": "GET /status"
+  }
+}
+```
 
----
+### GET `/status`
+Returns current system status including indexing state.
 
-## API Endpoint
+**Response:**
+```json
+{
+  "system_ready": true,
+  "documents_indexed": 5,
+  "last_indexed": "2024-01-15T10:30:00Z"
+}
+```
+
+### POST `/upload`
+Upload PDF documents for indexing.
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Body: `file` (PDF file)
+
+**Response:**
+```json
+{
+  "message": "Document uploaded successfully. Indexing in progress...",
+  "filename": "research_paper.pdf",
+  "status": "indexing"
+}
+```
 
 ### POST `/ask`
+Ask questions about uploaded documents.
 
-Request:
-
-
+**Request:**
+```json
 {
-"query": "Explain attention mechanism"
+  "query": "What are the main findings of this research?"
 }
+```
 
-
-Response:
-
-
+**Response:**
+```json
 {
-"answer": "...",
-"sources": [
-{"source": "paper.pdf", "page": 3}
-],
-"metrics": {
-"faithfulness": 0.92,
-"answer_relevance": 0.89
+  "query": "What are the main findings of this research?",
+  "answer": "The research identifies three key findings... [Source 1, Page 5]",
+  "sources": [
+    {
+      "source": "research_paper.pdf",
+      "page": 5,
+      "text": "The experimental results show..."
+    }
+  ],
+  "metrics": {
+    "context_precision": 0.95,
+    "answer_relevance": 0.89,
+    "faithfulness": 0.92
+  }
 }
-}
+```
 
 
----
+## Technologies & Dependencies
 
-## Technologies Used
+### Backend Stack
+- **FastAPI**: High-performance async web framework
+- **Sentence Transformers**: Text embedding and semantic search
+- **FAISS**: Efficient vector similarity search
+- **Rank-BM25**: Keyword-based document ranking
+- **Cross-Encoder Models**: Query-document relevance scoring
+- **PyPDF**: PDF document processing
+- **HuggingFace API**: LLM inference with fallback models
 
-### Backend
-- Python
-- FastAPI
-- Sentence Transformers
-- FAISS
-- BM25
-- HuggingFace Inference API
+### Frontend Stack
+- **React 18**: Modern UI framework with hooks
+- **Vite**: Fast development build tool
+- **Modern CSS**: Responsive design with custom styling
+- **Axios**: HTTP client for API communication
 
-### Frontend
-- React (Vite)
-- JavaScript
-- Modern Chat UI Design
-
-### AI/ML Concepts
-- Retrieval-Augmented Generation (RAG)
-- Semantic Search
-- Cross-Encoder Reranking
-- LLM Prompt Engineering
+### AI/ML Components
+- **Embedding Model**: `sentence-transformers/all-MiniLM-L6-v2`
+- **Reranking Model**: `cross-encoder/ms-marco-MiniLM-L-6-v2`
+- **LLM**: HuggingFace API with Meta-Llama models
+- **Fallback Models**: Automatic model switching on failures
 
 
----
+```
 
-## Future Improvements
 
-* Multi-query retrieval
-* RAG evaluation metrics
-* Interactive research paper QA interface
-* Web deployment
+##  Completed Features
 
----
+- **Cross-Encoder Reranking**: Implemented with top-5 chunk selection
+- **Hybrid Search**: Vector + BM25 with reciprocal rank fusion
+- **Enhanced Answer Generation**: Table removal, quality assessment, proper citations
+- **Production Backend**: FastAPI with async processing and error handling
+- **Modern Frontend**: React UI with file upload and chat interface
+- **Comprehensive Testing**: Full test coverage for all components
+- **RAG Evaluation**: Faithfulness, relevance, and precision metrics
+- **Security**: Environment-based configuration and API key management
+- **Documentation**: Detailed API docs and usage examples
 
-## License
 
-MIT License
+
+### Evaluation Metrics
+
+The system includes comprehensive RAG evaluation:
+
+- **Context Precision**: Measures if retrieved documents are relevant
+- **Answer Relevance**: Assesses if answers address the query
+- **Faithfulness**: Verifies answers are grounded in source documents
+
+Results are automatically saved to `evaluation/results.json` for analysis.
+
+
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+
