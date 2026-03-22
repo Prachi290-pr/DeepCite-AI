@@ -16,3 +16,5 @@ python-dotenv
 pypdf
 huggingface_hub
 openai
+aiofiles
+python-multipart
