@@ -4,8 +4,8 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.pipeline.rag_pipeline import RAGPipeline
-from backend.ingestion.document_loader import DocumentLoader
+from pipeline.rag_pipeline import RAGPipeline
+from ingestion.document_loader import DocumentLoader
 
 pipeline = None
 UPLOAD_DIR = "backend/data/uploads"
@@ -55,7 +55,10 @@ def root():
 def ask_question(request: QueryRequest):
     global pipeline
     if pipeline is None:
-        raise HTTPException(status_code=400, detail="No documents indexed yet. Upload a PDF and wait a moment for the index to complete.")
+        return {
+            "error": "No documents uploaded. Please upload a document first.",
+            "ready": False
+        }
 
     try:
         result = pipeline.ask(request.query)

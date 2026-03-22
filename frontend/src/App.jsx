@@ -239,12 +239,14 @@ styleSheet.textContent = `
   .ai-bubble-wrapper {
     max-width: 70%;
     display: flex; flex-direction: column; gap: 8px;
+    align-items: flex-start;
   }
   .ai-bubble {
     background: var(--bg-surface); border: 1px solid var(--border-dim);
     border-radius: 3px 14px 14px 14px;
     padding: 13px 16px; font-size: 0.85rem; line-height: 1.75;
     color: var(--text-primary); word-break: break-word;
+    text-align: left;
   }
 
   /* Markdown styling inside bubbles */
@@ -393,7 +395,12 @@ export default function App() {
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    if (!query.trim() || loading) return;
+    if (!query.trim() || loading || !systemReady) {
+      if (!systemReady) {
+        setMessages((prev) => [...prev, { role: "assistant", text: "⏳ Indexing not ready yet. Please wait a moment." }]);
+      }
+      return;
+    }
     const userMessage = { role: "user", text: query };
     setMessages((prev) => [...prev, userMessage]);
     setQuery("");

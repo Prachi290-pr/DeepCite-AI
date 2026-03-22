@@ -1,0 +1,19 @@
+# Ignore environment config files containing sensitive keys
+.env
+**/.env
+
+# Node modules and build output
+node_modules/
+dist/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VSCode settings
+.vscode/
+
+# Logs
+*.log
