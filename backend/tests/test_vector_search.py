@@ -1,8 +1,8 @@
-from ingestion.document_loader import load_papers
-from chunking.chunker import chunk_text_pages
-from indexing.vector_index import VectorIndex
+from backend.ingestion.document_loader import load_papers
+from backend.chunking.chunker import chunk_text_pages
+from backend.indexing.vector_index import VectorIndex
 
-loader = DocumentLoader("data/raw_papers")
+loader = DocumentLoader("backend/data/raw_papers")
 chunker = Chunker()
 vector_index = VectorIndex()
 

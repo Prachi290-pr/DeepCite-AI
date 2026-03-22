@@ -1,10 +1,10 @@
-from retrieval.hybrid_retriever import HybridRetriever
-from indexing.vector_index import VectorIndex
-from indexing.bm25_index import BM25Index
-from retrieval.reranker import Reranker
-from generation.answer_generator import AnswerGenerator
-from evaluation.evaluate import RAGEvaluator
-from chunking.chunker import Chunker
+from backend.retrieval.hybrid_retriever import HybridRetriever
+from backend.indexing.vector_index import VectorIndex
+from backend.indexing.bm25_index import BM25Index
+from backend.retrieval.reranker import Reranker
+from backend.generation.answer_generator import AnswerGenerator
+from backend.evaluation.evaluate import RAGEvaluator
+from backend.chunking.chunker import Chunker
 
 class RAGPipeline:
     def __init__(self):

@@ -1,4 +1,4 @@
-from evaluation.evaluate import RAGEvaluator
+from backend.evaluation.evaluate import RAGEvaluator
 
 query = "What architecture does the transformer use?"
 

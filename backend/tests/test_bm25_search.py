@@ -1,8 +1,8 @@
-from ingestion.document_loader import DocumentLoader
-from chunking.chunker import Chunker
-from indexing.bm25_index import BM25Index
+from backend.ingestion.document_loader import DocumentLoader
+from backend.chunking.chunker import Chunker
+from backend.indexing.bm25_index import BM25Index
 
-loader = DocumentLoader("data/raw_papers")
+loader = DocumentLoader("backend/data/raw_papers")
 docs = loader.load_documents()
 
 chunker = Chunker()

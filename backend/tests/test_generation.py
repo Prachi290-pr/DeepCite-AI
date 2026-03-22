@@ -1,4 +1,4 @@
-from generation.answer_generator import AnswerGenerator
+from backend.generation.answer_generator import AnswerGenerator
 
 docs = [
     {

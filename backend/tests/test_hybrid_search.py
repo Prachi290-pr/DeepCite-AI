@@ -1,11 +1,11 @@
-from ingestion.document_loader import DocumentLoader
-from chunking.chunker import Chunker
-from indexing.vector_index import VectorIndex
-from indexing.bm25_index import BM25Index
-from retrieval.hybrid_retriever import HybridRetriever
+from backend.ingestion.document_loader import DocumentLoader
+from backend.chunking.chunker import Chunker
+from backend.indexing.vector_index import VectorIndex
+from backend.indexing.bm25_index import BM25Index
+from backend.retrieval.hybrid_retriever import HybridRetriever
 
 
-loader = DocumentLoader("data/raw_papers")
+loader = DocumentLoader("backend/data/raw_papers")
 docs = loader.load_documents()
 
 chunker = Chunker()
